@@ -299,6 +299,33 @@ body {
     text-align: right;
 }
 
+/* Messaggio articoli vuoti */
+.empty-articles-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.empty-articles-message h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.empty-articles-message p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
 /* Pagina impostazioni */
 .settings-container {
     min-height: 100vh;
