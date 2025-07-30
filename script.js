@@ -120,6 +120,7 @@ function hideLoading() {
 
 function showRegistrationForm() {
     document.getElementById('registration-form').style.display = 'flex';
+    setupRegistrationForm();
 }
 
 function showHomepage() {
@@ -140,15 +141,24 @@ function backToHomepage() {
 }
 
 // Gestione registrazione
-document.getElementById('reg-form').addEventListener('submit', async function(e) {
+function setupRegistrationForm() {
+    const regForm = document.getElementById('reg-form');
+    if (regForm) {
+        regForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
     const username = formData.get('username');
     const password = formData.get('password');
     
+    // Debug log
+    console.log('Tentativo di registrazione per utente:', userId);
+    console.log('Username:', username);
+    console.log('Password length:', password.length);
+    
     // Validazione password
     if (password.length < 6) {
+        console.log('Password troppo corta');
         if (tg.showAlert) {
             tg.showAlert('La password deve essere di almeno 6 caratteri');
         } else {
@@ -191,7 +201,9 @@ document.getElementById('reg-form').addEventListener('submit', async function(e)
             alert('Errore durante la registrazione. Riprova.');
         }
     }
-});
+        });
+    }
+}
 
 // Caricamento articoli
 async function loadArticles() {
