@@ -83,80 +83,30 @@ async function loadDatabase() {
     };
 }
 
-// Articoli di default per demo
+// Database vuoto - nessun articolo di default
 function getDefaultArticles() {
-    return [
-        {
-            id: 1,
-            title: "iPhone 15 Pro Max",
-            description: "Smartphone Apple ultimo modello, condizioni eccellenti",
-            image: "https://via.placeholder.com/300x200/007bff/ffffff?text=iPhone+15",
-            price: "€1.200",
-            stock: 3,
-            seller: "TechStore Milano",
-            verified: true
-        },
-        {
-            id: 2,
-            title: "MacBook Air M2",
-            description: "Laptop Apple con chip M2, 8GB RAM, 256GB SSD",
-            image: "https://via.placeholder.com/300x200/28a745/ffffff?text=MacBook+Air",
-            price: "€1.050",
-            stock: 2,
-            seller: "ComputerShop",
-            verified: true
-        },
-        {
-            id: 3,
-            title: "AirPods Pro 2",
-            description: "Auricolari wireless con cancellazione del rumore",
-            image: "https://via.placeholder.com/300x200/dc3545/ffffff?text=AirPods+Pro",
-            price: "€280",
-            stock: 10,
-            seller: "AudioWorld",
-            verified: false
-        },
-        {
-            id: 4,
-            title: "PlayStation 5",
-            description: "Console Sony PS5 con controller DualSense incluso",
-            image: "https://via.placeholder.com/300x200/6f42c1/ffffff?text=PlayStation+5",
-            price: "€550",
-            stock: 1,
-            seller: "GameZone",
-            verified: true
-        },
-        {
-            id: 5,
-            title: "Samsung Galaxy S24",
-            description: "Smartphone Android flagship con fotocamera professionale",
-            image: "https://via.placeholder.com/300x200/fd7e14/ffffff?text=Galaxy+S24",
-            price: "€899",
-            stock: 5,
-            seller: "MobileCenter",
-            verified: true
-        },
-        {
-            id: 6,
-            title: "Nintendo Switch",
-            description: "Console portatile con Joy-Con e giochi inclusi",
-            image: "https://via.placeholder.com/300x200/e83e8c/ffffff?text=Nintendo+Switch",
-            price: "€320",
-            stock: 7,
-            seller: "RetroGaming",
-            verified: false
-        }
-    ];
+    return [];
 }
 
 // Salvataggio database
 async function saveDatabase(database) {
     try {
-        // In un'app reale, questo dovrebbe essere una chiamata API
-        // Per ora simuliamo il salvataggio in localStorage
-        localStorage.setItem('marketplace_db', JSON.stringify(database));
-        console.log('Database salvato con successo');
-        return true;
+        const response = await fetch('/api/save-database', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(database)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Database salvato con successo:', result.message);
+            return true;
+        } else {
+            console.error('Errore HTTP durante il salvataggio:', response.status);
+            return false;
+        }
     } catch (error) {
         console.error('Errore salvataggio database:', error);
         return false;
@@ -251,10 +201,22 @@ async function loadArticles() {
     const articlesGrid = document.getElementById('articles-grid');
     articlesGrid.innerHTML = '';
     
-    articles.forEach(article => {
-        const articleCard = createArticleCard(article);
-        articlesGrid.appendChild(articleCard);
-    });
+    if (articles.length === 0) {
+        // Mostra messaggio quando non ci sono articoli
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-articles-message';
+        emptyMessage.innerHTML = `
+            <div class="empty-icon">📦</div>
+            <h3>Nessun articolo disponibile</h3>
+            <p>Non ci sono ancora articoli nel marketplace. Torna presto per vedere le novità!</p>
+        `;
+        articlesGrid.appendChild(emptyMessage);
+    } else {
+        articles.forEach(article => {
+            const articleCard = createArticleCard(article);
+            articlesGrid.appendChild(articleCard);
+        });
+    }
 }
 
 // Creazione card articolo
