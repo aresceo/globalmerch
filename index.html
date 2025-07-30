@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mini App Telegram</title>
+  <meta charset="utf-8" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ciao dalla Mini App!</h1>
+  <button onclick="sendData()">Invia 'ciao' al bot</button>
+
+  <script>
+    function sendData() {
+      Telegram.WebApp.sendData("ciao");
+    }
+    Telegram.WebApp.ready();
+  </script>
+</body>
+</html>
