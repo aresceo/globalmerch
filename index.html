@@ -1,153 +1,339 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalMerch</title>
-    <link rel="stylesheet" href="style.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>GlobalMerch - Mini App</title>
+    <meta name="description" content="Marketplace globale per articoli e prodotti di qualità. Registrati e inizia a vendere o comprare.">
+    
+    <!-- Telegram Web App Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="loader"></div>
-        <p>Caricamento...</p>
-    </div>
+    
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'telegram-blue': 'hsl(207, 90%, 54%)',
+              'accent-orange': 'hsl(35, 100%, 50%)',
+              'success-green': 'hsl(122, 39%, 49%)',
+              'error-red': 'hsl(0, 77%, 59%)'
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      body { font-family: 'Inter', system-ui, sans-serif; }
+      .animate-spin { animation: spin 1s linear infinite; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <div id="app">
+      <!-- Loading spinner -->
+      <div id="loading" class="min-h-screen flex items-center justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
 
-    <!-- Registration Form -->
-    <div id="registration-form" class="modal hidden">
-        <div class="modal-content">
-            <h2>Registrazione</h2>
-            <form id="reg-form">
-                <div class="form-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required readonly>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit">Registrati</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Main App -->
-    <div id="main-app" class="hidden">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="search-container">
-                    <input type="text" id="search-bar" placeholder="Cerca articoli...">
-                    <button id="search-btn">🔍</button>
-                </div>
-                <div class="header-icons">
-                    <div class="icon-container">
-                        <button id="profile-btn" class="icon-btn">👤</button>
-                        <div id="profile-menu" class="dropdown-menu hidden">
-                            <a href="#" id="settings-btn">Impostazioni</a>
-                        </div>
-                    </div>
-                    <div class="icon-container">
-                        <button id="seller-btn" class="icon-btn">🛒</button>
-                    </div>
-                    <div class="icon-container">
-                        <button id="notifications-btn" class="icon-btn">🔔</button>
-                        <span id="notification-badge" class="badge hidden"></span>
-                    </div>
-                </div>
+      <!-- Login Form -->
+      <div id="login-form" class="hidden min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6">
+          <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+              </svg>
             </div>
+            <h1 class="text-2xl font-semibold text-gray-800 mb-2">Benvenuto in GlobalMerch</h1>
+            <p class="text-gray-600">Registrati per iniziare</p>
+          </div>
+
+          <form id="registration-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+              <input
+                id="username"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                readonly
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Scegli una password"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md mt-6 disabled:bg-gray-300"
+            >
+              Registrati
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Main App -->
+      <div id="main-app" class="hidden max-w-md mx-auto bg-white min-h-screen">
+        <!-- Navigation -->
+        <header class="sticky top-0 bg-white border-b border-gray-100 z-40">
+          <div class="p-4">
+            <!-- Search Bar -->
+            <div class="relative mb-4">
+              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <input
+                id="search-input"
+                type="text"
+                placeholder="Cerca articoli..."
+                class="w-full pl-10 pr-4 py-2 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <!-- Action Icons -->
+            <div class="flex items-center justify-between">
+              <h1 class="text-xl font-semibold text-gray-800">GlobalMerch</h1>
+              
+              <div class="flex items-center space-x-3">
+                <!-- Notifications -->
+                <button id="notifications-btn" class="relative p-2 hover:bg-gray-100 rounded-lg">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5-5 5-5H15m-6 0l-5 5 5 5"></path>
+                  </svg>
+                  <div id="notification-badge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">0</div>
+                </button>
+                
+                <!-- Seller Icon -->
+                <button id="seller-btn" class="p-2 hover:bg-gray-100 rounded-lg">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                  </svg>
+                </button>
+                
+                <!-- Profile Dropdown -->
+                <div class="relative">
+                  <button id="profile-btn" class="relative h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                  </button>
+                  <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border">
+                    <button id="settings-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                      <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      </svg>
+                      Impostazioni
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div id="articles-container" class="articles-container">
-                <!-- Articles will be loaded here -->
+        <!-- Content Area -->
+        <main id="content-area" class="p-4 pb-20">
+          <!-- Home Page -->
+          <div id="home-page">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Articoli Popolari</h2>
+            <div id="articles-grid" class="grid grid-cols-2 gap-4">
+              <!-- Articles will be dynamically loaded here -->
             </div>
-        </main>
-    </div>
+          </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Impostazioni</h2>
-                <button id="close-settings" class="close-btn">×</button>
+          <!-- Settings Page -->
+          <div id="settings-page" class="hidden">
+            <div class="flex items-center mb-6">
+              <button id="back-from-settings" class="mr-4 p-2 hover:bg-gray-100 rounded-lg">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+              </button>
+              <h1 class="text-xl font-semibold text-gray-800">Impostazioni</h1>
             </div>
-            <form id="settings-form">
-                <div class="form-group">
-                    <label for="profile-pic">Foto Profilo:</label>
-                    <input type="file" id="profile-pic" accept="image/*">
+
+            <div class="space-y-6">
+              <div class="text-center">
+                <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
                 </div>
-                <div class="form-group">
-                    <label for="bio">Bio:</label>
-                    <textarea id="bio" placeholder="Scrivi qualcosa su di te..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="telegram-channel">Link Canale Telegram per recensioni:</label>
-                    <input type="url" id="telegram-channel" placeholder="https://t.me/tuocanale">
-                </div>
-                <button type="submit">Salva</button>
+                <button class="text-blue-500 text-sm font-medium">Cambia foto profilo</button>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                <textarea
+                  id="bio-input"
+                  placeholder="Racconta qualcosa di te..."
+                  rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none"
+                ></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Canale Recensioni</label>
+                <input
+                  id="review-channel-input"
+                  type="url"
+                  placeholder="https://t.me/tuocanale"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <button
+                id="save-settings-btn"
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md"
+              >
+                Salva Modifiche
+              </button>
+            </div>
+          </div>
+
+          <!-- Seller Form Page -->
+          <div id="seller-form-page" class="hidden">
+            <div class="flex items-center mb-6">
+              <button id="back-from-seller" class="mr-4 p-2 hover:bg-gray-100 rounded-lg">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+              </button>
+              <h1 class="text-xl font-semibold text-gray-800">Diventa Venditore</h1>
+            </div>
+
+            <form id="seller-form" class="space-y-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <input
+                  id="seller-username"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  readonly
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cosa vendi principalmente?</label>
+                <textarea
+                  id="seller-description"
+                  placeholder="Descrivi i prodotti che vendi..."
+                  rows="4"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none"
+                  required
+                ></textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Canale Feedback</label>
+                <input
+                  id="seller-review-channel"
+                  type="url"
+                  placeholder="https://t.me/tuocanale"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div class="flex items-start space-x-3">
+                <input
+                  id="terms-checkbox"
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label for="terms-checkbox" class="text-sm text-gray-700 leading-relaxed">
+                  Continuando accetto i termini di servizio per
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-blue-500 underline"
+                  >
+                    diventare un venditore
+                  </a>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md disabled:bg-gray-300"
+              >
+                Invia Richiesta
+              </button>
             </form>
-        </div>
-    </div>
+          </div>
 
-    <!-- Seller Request Modal -->
-    <div id="seller-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Diventa Venditore</h2>
-                <button id="close-seller" class="close-btn">×</button>
+          <!-- Success Page -->
+          <div id="success-page" class="hidden text-center py-16">
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
             </div>
-            <form id="seller-form">
-                <div class="form-group">
-                    <label for="seller-username">Username:</label>
-                    <input type="text" id="seller-username" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="what-sell">Cosa vendi principalmente?</label>
-                    <textarea id="what-sell" placeholder="Descrivi i tuoi prodotti..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="feedback-channel">Canale Feedback:</label>
-                    <input type="url" id="feedback-channel" placeholder="https://t.me/tuocanale">
-                </div>
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="terms-accept" required>
-                    <label for="terms-accept">
-                        Continuando accetto i 
-                        <a href="https://youtube.com" target="_blank">termini di servizio per diventare un venditore</a>
-                    </label>
-                </div>
-                <button type="submit">Invia Richiesta</button>
-            </form>
-        </div>
-    </div>
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">La tua richiesta è stata inviata</h2>
+            <p class="text-gray-600 mb-8">Riceverai una notifica quando sarà processata</p>
+            
+            <button
+              id="back-to-home-btn"
+              class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md"
+            >
+              Torna alla Home
+            </button>
+          </div>
 
-    <!-- Seller Request Success -->
-    <div id="seller-success" class="modal hidden">
-        <div class="modal-content">
-            <div class="success-animation">
-                <div class="checkmark">✓</div>
+          <!-- Notifications Page -->
+          <div id="notifications-page" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center">
+                <button id="back-from-notifications" class="mr-4 p-2 hover:bg-gray-100 rounded-lg">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                  </svg>
+                </button>
+                <h1 class="text-xl font-semibold text-gray-800">Notifiche</h1>
+              </div>
+              
+              <button
+                id="mark-all-read-btn"
+                class="text-blue-500 text-sm font-medium hover:underline"
+              >
+                Segna tutte come lette
+              </button>
             </div>
-            <h2>La tua richiesta è stata inviata</h2>
-            <button id="close-success" class="close-btn">×</button>
-        </div>
-    </div>
 
-    <!-- Notifications Modal -->
-    <div id="notifications-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Notifiche</h2>
-                <button id="close-notifications" class="close-btn">×</button>
-            </div>
             <div id="notifications-list">
-                <!-- Notifications will be loaded here -->
+              <div id="no-notifications" class="text-center py-16">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5-5 5-5H15m-6 0l-5 5 5 5"></path>
+                  </svg>
+                </div>
+                <p class="text-gray-500">Nessuna notifica recente</p>
+              </div>
             </div>
-        </div>
+          </div>
+        </main>
+      </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
