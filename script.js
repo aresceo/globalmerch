@@ -303,6 +303,16 @@ class GlobalMerchApp {
     }
 
     showSellerModal() {
+        // Controlla se l'utente ha già una candidatura pending
+        const existingRequest = this.database.sellerRequests.find(
+            r => r.userId === this.currentUser.telegramId && r.status === 'pending'
+        );
+
+        if (existingRequest) {
+            alert('Hai già una candidatura in corso. Attendi la risposta prima di inviarne una nuova.');
+            return;
+        }
+
         const modal = document.getElementById('seller-modal');
         
         // Pre-fill username and channel
@@ -401,6 +411,16 @@ class GlobalMerchApp {
             return;
         }
 
+        // Controlla se l'utente ha già una candidatura pending
+        const existingRequest = this.database.sellerRequests.find(
+            r => r.userId === this.currentUser.telegramId && r.status === 'pending'
+        );
+
+        if (existingRequest) {
+            alert('Hai già una candidatura in corso. Attendi la risposta prima di inviarne una nuova.');
+            return;
+        }
+
         const request = {
             id: Date.now(),
             userId: this.currentUser.telegramId,
@@ -414,30 +434,31 @@ class GlobalMerchApp {
         this.database.sellerRequests.push(request);
         await this.saveDatabase();
 
-        // Send notification to admin (ID: 7839114402)
-        await this.sendAdminNotification(request);
+        // Send request to Telegram bot
+        await this.sendSellerRequestToBot(request);
 
         this.closeModal(document.getElementById('seller-modal'));
         this.showSellerSuccess();
     }
 
-    async sendAdminNotification(request) {
+    async sendSellerRequestToBot(request) {
         try {
-            // This would send a message to the Telegram bot
-            const message = `❗NUOVA RICHIESTA:\nUsername: ${request.username}\nCosa vende: ${request.whatSell}\nCanale feedback: ${request.feedbackChannel}`;
-            
-            await fetch('/api/notify-admin', {
+            // Invia la candidatura al bot Telegram
+            await fetch('/api/send-seller-request', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    adminId: '7839114402',
-                    message: message
+                    requestId: request.id,
+                    userId: request.userId,
+                    username: request.username,
+                    whatSell: request.whatSell,
+                    feedbackChannel: request.feedbackChannel
                 })
             });
         } catch (error) {
-            console.error('Error sending admin notification:', error);
+            console.error('Error sending seller request to bot:', error);
         }
     }
 
