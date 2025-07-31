@@ -3,82 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketplace - Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>GlobalMerch</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <!-- Overlay di caricamento -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loader"></div>
         <p>Caricamento...</p>
     </div>
 
-    <!-- Form di registrazione -->
-    <div id="registration-form" class="registration-container" style="display: none;">
-        <div class="registration-form">
-            <h2>Benvenuto nel Marketplace!</h2>
-            <p>Completa la registrazione per iniziare</p>
-            
+    <!-- Registration Form -->
+    <div id="registration-form" class="modal hidden">
+        <div class="modal-content">
+            <h2>Registrazione</h2>
             <form id="reg-form">
                 <div class="form-group">
-                    <label for="username">Nome utente</label>
-                    <input type="text" id="username" name="username" readonly required>
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required readonly>
                 </div>
-                
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required minlength="6" placeholder="Inserisci la tua password">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
                 </div>
-                
-                <button type="submit" class="btn-primary">Registrati</button>
+                <button type="submit">Registrati</button>
             </form>
         </div>
     </div>
 
-    <!-- Homepage principale -->
-    <div id="homepage" class="main-container" style="display: none;">
-        <!-- Header con profilo utente -->
+    <!-- Main App -->
+    <div id="main-app" class="hidden">
+        <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1>Marketplace</h1>
-                <div class="user-profile" id="user-profile">
-                    <img src="https://via.placeholder.com/40" alt="Profilo" class="profile-pic" id="profile-pic">
-                    <div class="dropdown-menu" id="dropdown-menu">
-                        <a href="#" id="settings-link">Impostazioni</a>
+                <div class="search-container">
+                    <input type="text" id="search-bar" placeholder="Cerca articoli...">
+                    <button id="search-btn">🔍</button>
+                </div>
+                <div class="header-icons">
+                    <div class="icon-container">
+                        <button id="profile-btn" class="icon-btn">👤</button>
+                        <div id="profile-menu" class="dropdown-menu hidden">
+                            <a href="#" id="settings-btn">Impostazioni</a>
+                        </div>
+                    </div>
+                    <div class="icon-container">
+                        <button id="seller-btn" class="icon-btn">🛒</button>
+                    </div>
+                    <div class="icon-container">
+                        <button id="notifications-btn" class="icon-btn">🔔</button>
+                        <span id="notification-badge" class="badge hidden"></span>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Contenuto principale -->
+        <!-- Main Content -->
         <main class="main-content">
-            <section class="articles-section">
-                <h2>Ultimi Articoli</h2>
-                <div class="articles-grid" id="articles-grid">
-                    <!-- Gli articoli verranno caricati dinamicamente -->
-                </div>
-            </section>
+            <div id="articles-container" class="articles-container">
+                <!-- Articles will be loaded here -->
+            </div>
         </main>
     </div>
 
-    <!-- Pagina impostazioni -->
-    <div id="settings-page" class="settings-container" style="display: none;">
-        <header class="settings-header">
-            <button id="back-btn" class="back-btn">← Indietro</button>
-            <h2>Impostazioni</h2>
-        </header>
-        
-        <div class="settings-content">
-            <div class="form-group">
-                <label for="profile-upload">Cambia foto profilo</label>
-                <input type="file" id="profile-upload" accept="image/*">
-                <div class="current-profile">
-                    <img src="https://via.placeholder.com/80" alt="Foto attuale" id="current-profile-pic">
-                </div>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Impostazioni</h2>
+                <button id="close-settings" class="close-btn">×</button>
             </div>
-            
-            <button id="save-settings" class="btn-primary">Salva Modifiche</button>
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="profile-pic">Foto Profilo:</label>
+                    <input type="file" id="profile-pic" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="bio">Bio:</label>
+                    <textarea id="bio" placeholder="Scrivi qualcosa su di te..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="telegram-channel">Link Canale Telegram per recensioni:</label>
+                    <input type="url" id="telegram-channel" placeholder="https://t.me/tuocanale">
+                </div>
+                <button type="submit">Salva</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Seller Request Modal -->
+    <div id="seller-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Diventa Venditore</h2>
+                <button id="close-seller" class="close-btn">×</button>
+            </div>
+            <form id="seller-form">
+                <div class="form-group">
+                    <label for="seller-username">Username:</label>
+                    <input type="text" id="seller-username" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="what-sell">Cosa vendi principalmente?</label>
+                    <textarea id="what-sell" placeholder="Descrivi i tuoi prodotti..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="feedback-channel">Canale Feedback:</label>
+                    <input type="url" id="feedback-channel" placeholder="https://t.me/tuocanale">
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="terms-accept" required>
+                    <label for="terms-accept">
+                        Continuando accetto i 
+                        <a href="https://youtube.com" target="_blank">termini di servizio per diventare un venditore</a>
+                    </label>
+                </div>
+                <button type="submit">Invia Richiesta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Seller Request Success -->
+    <div id="seller-success" class="modal hidden">
+        <div class="modal-content">
+            <div class="success-animation">
+                <div class="checkmark">✓</div>
+            </div>
+            <h2>La tua richiesta è stata inviata</h2>
+            <button id="close-success" class="close-btn">×</button>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notifications-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Notifiche</h2>
+                <button id="close-notifications" class="close-btn">×</button>
+            </div>
+            <div id="notifications-list">
+                <!-- Notifications will be loaded here -->
+            </div>
         </div>
     </div>
 
