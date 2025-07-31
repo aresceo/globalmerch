@@ -111,6 +111,73 @@ app.post('/api/notify-admin', async (req, res) => {
     }
 });
 
+// Update seller request status
+app.post('/api/update-seller-request', async (req, res) => {
+    try {
+        const { requestId, status } = req.body;
+        const data = await fs.readFile(DATABASE_FILE, 'utf8');
+        const database = JSON.parse(data);
+        
+        // Trova e aggiorna la richiesta
+        const request = database.sellerRequests.find(r => r.id == requestId);
+        if (request) {
+            request.status = status;
+            await fs.writeFile(DATABASE_FILE, JSON.stringify(database, null, 2));
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Request not found' });
+        }
+    } catch (error) {
+        console.error('Error updating seller request:', error);
+        res.status(500).json({ error: 'Failed to update request' });
+    }
+});
+
+// Add notification
+app.post('/api/add-notification', async (req, res) => {
+    try {
+        const { userId, title, message } = req.body;
+        const data = await fs.readFile(DATABASE_FILE, 'utf8');
+        const database = JSON.parse(data);
+        
+        const notification = {
+            id: Date.now(),
+            userId: userId,
+            title: title,
+            message: message,
+            date: new Date().toISOString(),
+            read: false
+        };
+        
+        database.notifications.push(notification);
+        await fs.writeFile(DATABASE_FILE, JSON.stringify(database, null, 2));
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error adding notification:', error);
+        res.status(500).json({ error: 'Failed to add notification' });
+    }
+});
+
+// Send seller request to Telegram bot
+app.post('/api/send-seller-request', async (req, res) => {
+    try {
+        const requestData = req.body;
+        
+        // In un'implementazione reale, qui invieresti i dati al bot Telegram
+        // Per ora loggiamo e simuliamo l'invio
+        console.log('Sending seller request to Telegram bot:', requestData);
+        
+        // Simula l'invio al bot (in produzione useresti webhook o chiamate dirette)
+        // await sendToTelegramBot(requestData);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error sending seller request to bot:', error);
+        res.status(500).json({ error: 'Failed to send request to bot' });
+    }
+});
+
 // Serve the main app
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
