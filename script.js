@@ -1,360 +1,513 @@
-// Inizializzazione Telegram Web App
-let tg = window.Telegram.WebApp;
-let userId = null;
-let userData = null;
-
-// Configurazione iniziale
-tg.ready();
-tg.expand();
-
-// Gestione del caricamento iniziale
-document.addEventListener('DOMContentLoaded', function() {
-    // Ottieni l'ID utente da Telegram
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        userId = tg.initDataUnsafe.user.id;
-        console.log('User ID:', userId);
-        
-        // Carica o registra l'utente
-        initializeUser();
-    } else {
-        // Fallback per testing senza Telegram
-        userId = 'test_user_' + Date.now();
-        initializeUser();
-    }
-});
-
-// Inizializzazione utente
-async function initializeUser() {
-    try {
-        // Carica il database
-        const database = await loadDatabase();
-        
-        // Controlla se l'utente esiste già
-        if (database.users && database.users[userId]) {
-            userData = database.users[userId];
-            showHomepage();
-        } else {
-            showRegistrationForm();
-            // Precompila l'username dal profilo Telegram
-            populateUsername();
-        }
-        
-        hideLoading();
-    } catch (error) {
-        console.error('Errore inizializzazione:', error);
-        hideLoading();
-        showRegistrationForm();
-        populateUsername();
-    }
-}
-
-// Precompila l'username dal profilo Telegram
-function populateUsername() {
-    const usernameField = document.getElementById('username');
-    
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const telegramUser = tg.initDataUnsafe.user;
-        // Prova username, poi first_name, poi fallback
-        const username = telegramUser.username || 
-                        telegramUser.first_name || 
-                        `user_${telegramUser.id}`;
-        usernameField.value = username;
-    } else {
-        // Fallback per testing
-        usernameField.value = `test_user_${Date.now()}`;
-    }
-}
-
-// Caricamento database
-async function loadDatabase() {
-    try {
-        const response = await fetch('database.json');
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.log('Database non trovato, creazione nuovo database');
-    }
-    
-    // Ritorna database vuoto se non esiste
-    return {
-        users: {},
-        articles: getDefaultArticles()
-    };
-}
-
-// Database vuoto - nessun articolo di default
-function getDefaultArticles() {
-    return [];
-}
-
-// Salvataggio database
-async function saveDatabase(database) {
-    try {
-        const response = await fetch('/api/save-database', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(database)
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            console.log('Database salvato con successo:', result.message);
-            return true;
-        } else {
-            console.error('Errore HTTP durante il salvataggio:', response.status);
-            return false;
-        }
-    } catch (error) {
-        console.error('Errore salvataggio database:', error);
-        return false;
-    }
-}
-
-// Mostra/nascondi elementi
-function hideLoading() {
-    document.getElementById('loading-overlay').style.display = 'none';
-}
-
-function showRegistrationForm() {
-    document.getElementById('registration-form').style.display = 'flex';
-    setupRegistrationForm();
-}
-
-function showHomepage() {
-    document.getElementById('homepage').style.display = 'block';
-    loadArticles();
-    setupUserProfile();
-}
-
-function showSettings() {
-    document.getElementById('homepage').style.display = 'none';
-    document.getElementById('settings-page').style.display = 'block';
-    loadCurrentProfilePic();
-}
-
-function backToHomepage() {
-    document.getElementById('settings-page').style.display = 'none';
-    document.getElementById('homepage').style.display = 'block';
-}
-
-// Gestione registrazione
-function setupRegistrationForm() {
-    const regForm = document.getElementById('reg-form');
-    if (regForm) {
-        regForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const username = formData.get('username');
-    const password = formData.get('password');
-    
-    // Debug log
-    console.log('Tentativo di registrazione per utente:', userId);
-    console.log('Username:', username);
-    console.log('Password length:', password.length);
-    
-    // Validazione password
-    if (password.length < 6) {
-        console.log('Password troppo corta');
-        if (tg.showAlert) {
-            tg.showAlert('La password deve essere di almeno 6 caratteri');
-        } else {
-            alert('La password deve essere di almeno 6 caratteri');
-        }
-        return;
-    }
-    
-    const newUser = {
-        id: userId,
-        username: username,
-        password: password, // In un'app reale, questo dovrebbe essere hashato
-        registrationDate: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/80/007bff/ffffff?text=' + username.charAt(0).toUpperCase()
-    };
-    
-    // Carica database attuale
-    const database = await loadDatabase();
-    
-    // Aggiungi nuovo utente
-    if (!database.users) database.users = {};
-    database.users[userId] = newUser;
-    
-    // Salva database
-    const saved = await saveDatabase(database);
-    
-    if (saved) {
-        userData = newUser;
-        document.getElementById('registration-form').style.display = 'none';
-        showHomepage();
-        
-        // Notifica Telegram se disponibile
-        if (tg.showAlert) {
-            tg.showAlert('Registrazione completata con successo!');
-        }
-    } else {
-        if (tg.showAlert) {
-            tg.showAlert('Errore durante la registrazione. Riprova.');
-        } else {
-            alert('Errore durante la registrazione. Riprova.');
-        }
-    }
-        });
-    }
-}
-
-// Caricamento articoli
-async function loadArticles() {
-    const database = await loadDatabase();
-    const articles = database.articles || getDefaultArticles();
-    
-    const articlesGrid = document.getElementById('articles-grid');
-    articlesGrid.innerHTML = '';
-    
-    if (articles.length === 0) {
-        // Mostra messaggio quando non ci sono articoli
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'empty-articles-message';
-        emptyMessage.innerHTML = `
-            <div class="empty-icon">📦</div>
-            <h3>Nessun articolo disponibile</h3>
-            <p>Non ci sono ancora articoli nel marketplace. Torna presto per vedere le novità!</p>
-        `;
-        articlesGrid.appendChild(emptyMessage);
-    } else {
-        articles.forEach(article => {
-            const articleCard = createArticleCard(article);
-            articlesGrid.appendChild(articleCard);
-        });
-    }
-}
-
-// Creazione card articolo
-function createArticleCard(article) {
-    const card = document.createElement('div');
-    card.className = 'article-card';
-    
-    card.innerHTML = `
-        <img src="${article.image}" alt="${article.title}" class="article-image">
-        <div class="article-content">
-            <h3 class="article-title">${article.title}</h3>
-            <p class="article-description">${article.description}</p>
-            <div class="article-info">
-                <span class="stock-info">Stock: ${article.stock}</span>
-            </div>
-            <div class="seller-info">
-                <span class="seller-name">${article.seller}</span>
-                ${article.verified ? '<span class="verified-badge">Verificato</span>' : ''}
-            </div>
-            <div class="article-price">${article.price}</div>
-        </div>
-    `;
-    
-    return card;
-}
-
-// Setup profilo utente
-function setupUserProfile() {
-    const profilePic = document.getElementById('profile-pic');
-    const dropdownMenu = document.getElementById('dropdown-menu');
-    
-    if (userData && userData.profilePicture) {
-        profilePic.src = userData.profilePicture;
-    }
-    
-    // Toggle dropdown menu
-    profilePic.addEventListener('click', function(e) {
-        e.stopPropagation();
-        dropdownMenu.classList.toggle('show');
-    });
-    
-    // Chiudi menu quando si clicca fuori
-    document.addEventListener('click', function() {
-        dropdownMenu.classList.remove('show');
-    });
-    
-    // Link impostazioni
-    document.getElementById('settings-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        dropdownMenu.classList.remove('show');
-        showSettings();
-    });
-}
-
-// Gestione impostazioni
-document.getElementById('back-btn').addEventListener('click', backToHomepage);
-
-document.getElementById('profile-upload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('current-profile-pic').src = e.target.result;
+class GlobalMerchApp {
+    constructor() {
+        this.currentUser = null;
+        this.database = {
+            users: [],
+            articles: [],
+            notifications: [],
+            sellerRequests: []
         };
-        reader.readAsDataURL(file);
+        this.init();
     }
-});
 
-document.getElementById('save-settings').addEventListener('click', async function() {
-    const fileInput = document.getElementById('profile-upload');
-    
-    if (fileInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const newProfilePic = e.target.result;
-            
-            // Aggiorna database
-            const database = await loadDatabase();
-            if (database.users && database.users[userId]) {
-                database.users[userId].profilePicture = newProfilePic;
-                userData.profilePicture = newProfilePic;
-                
-                const saved = await saveDatabase(database);
-                
-                if (saved) {
-                    // Aggiorna l'immagine nell'header
-                    document.getElementById('profile-pic').src = newProfilePic;
-                    
-                    if (tg.showAlert) {
-                        tg.showAlert('Foto profilo aggiornata!');
-                    } else {
-                        alert('Foto profilo aggiornata!');
-                    }
-                    
-                    backToHomepage();
-                }
+    async init() {
+        // Initialize Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        // Load database
+        await this.loadDatabase();
+        
+        // Check if user is registered
+        const telegramUser = this.getTelegramUser();
+        if (telegramUser) {
+            const existingUser = this.findUserById(telegramUser.id);
+            if (existingUser) {
+                this.currentUser = existingUser;
+                this.showMainApp();
+            } else {
+                this.showRegistrationForm(telegramUser);
             }
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else {
-        if (tg.showAlert) {
-            tg.showAlert('Seleziona una foto prima di salvare.');
         } else {
-            alert('Seleziona una foto prima di salvare.');
+            // For testing without Telegram
+            this.showRegistrationForm({ id: 'test_user', username: 'test_user' });
+        }
+
+        this.setupEventListeners();
+        this.hideLoadingScreen();
+    }
+
+    getTelegramUser() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe.user) {
+            return window.Telegram.WebApp.initDataUnsafe.user;
+        }
+        return null;
+    }
+
+    async loadDatabase() {
+        try {
+            const response = await fetch('/api/database');
+            if (response.ok) {
+                this.database = await response.json();
+            }
+        } catch (error) {
+            console.log('Database not found, using default structure');
+            this.initializeDefaultDatabase();
         }
     }
-});
 
-function loadCurrentProfilePic() {
-    const currentPic = document.getElementById('current-profile-pic');
-    if (userData && userData.profilePicture) {
-        currentPic.src = userData.profilePicture;
+    initializeDefaultDatabase() {
+        this.database = {
+            users: [],
+            articles: [
+                {
+                    id: 1,
+                    title: "iPhone 15 Pro",
+                    description: "Nuovo iPhone 15 Pro 256GB, colore Titanio Naturale",
+                    price: "€1,199",
+                    image: "📱",
+                    views: 150,
+                    category: "Tecnologia",
+                    date: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    title: "Nike Air Jordan",
+                    description: "Scarpe Nike Air Jordan 1 High, taglia 42",
+                    price: "€180",
+                    image: "👟",
+                    views: 89,
+                    category: "Abbigliamento",
+                    date: new Date().toISOString()
+                },
+                {
+                    id: 3,
+                    title: "MacBook Pro M3",
+                    description: "MacBook Pro 14\" con chip M3, 16GB RAM, 512GB SSD",
+                    price: "€2,299",
+                    image: "💻",
+                    views: 203,
+                    category: "Tecnologia",
+                    date: new Date().toISOString()
+                },
+                {
+                    id: 4,
+                    title: "Rolex Submariner",
+                    description: "Rolex Submariner Date, acciaio inossidabile",
+                    price: "€8,500",
+                    image: "⌚",
+                    views: 45,
+                    category: "Orologi",
+                    date: new Date().toISOString()
+                }
+            ],
+            notifications: [],
+            sellerRequests: []
+        };
+    }
+
+    async saveDatabase() {
+        try {
+            await fetch('/api/database', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(this.database)
+            });
+        } catch (error) {
+            console.error('Error saving database:', error);
+        }
+    }
+
+    findUserById(id) {
+        return this.database.users.find(user => user.telegramId === id);
+    }
+
+    hideLoadingScreen() {
+        document.getElementById('loading-screen').classList.add('hidden');
+    }
+
+    showRegistrationForm(telegramUser) {
+        const form = document.getElementById('registration-form');
+        const usernameInput = document.getElementById('username');
+        
+        usernameInput.value = telegramUser.username || `user_${telegramUser.id}`;
+        form.classList.remove('hidden');
+    }
+
+    showMainApp() {
+        document.getElementById('main-app').classList.remove('hidden');
+        this.loadArticles();
+        this.updateNotificationBadge();
+    }
+
+    setupEventListeners() {
+        // Registration form
+        document.getElementById('reg-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleRegistration();
+        });
+
+        // Header icons
+        document.getElementById('profile-btn').addEventListener('click', () => {
+            this.toggleProfileMenu();
+        });
+
+        document.getElementById('seller-btn').addEventListener('click', () => {
+            this.showSellerModal();
+        });
+
+        document.getElementById('notifications-btn').addEventListener('click', () => {
+            this.showNotificationsModal();
+        });
+
+        // Settings
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            this.showSettingsModal();
+        });
+
+        // Modal close buttons
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.closeModal(e.target.closest('.modal'));
+            });
+        });
+
+        // Forms
+        document.getElementById('settings-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSettingsUpdate();
+        });
+
+        document.getElementById('seller-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSellerRequest();
+        });
+
+        // Search
+        document.getElementById('search-btn').addEventListener('click', () => {
+            this.handleSearch();
+        });
+
+        document.getElementById('search-bar').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleSearch();
+            }
+        });
+
+        // Click outside to close dropdowns
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.icon-container')) {
+                document.getElementById('profile-menu').classList.add('hidden');
+            }
+        });
+    }
+
+    async handleRegistration() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        const telegramUser = this.getTelegramUser() || { id: 'test_user' };
+        
+        const newUser = {
+            telegramId: telegramUser.id,
+            username: username,
+            password: password, // In produzione, hashare la password
+            bio: '',
+            profilePic: '',
+            telegramChannel: '',
+            registrationDate: new Date().toISOString(),
+            viewedArticles: [],
+            preferences: {}
+        };
+
+        this.database.users.push(newUser);
+        this.currentUser = newUser;
+        
+        await this.saveDatabase();
+        
+        document.getElementById('registration-form').classList.add('hidden');
+        this.showMainApp();
+    }
+
+    loadArticles() {
+        const container = document.getElementById('articles-container');
+        container.innerHTML = '';
+
+        // Sort articles by views and date
+        const sortedArticles = [...this.database.articles].sort((a, b) => {
+            return b.views - a.views || new Date(b.date) - new Date(a.date);
+        });
+
+        sortedArticles.forEach(article => {
+            const articleElement = this.createArticleElement(article);
+            container.appendChild(articleElement);
+        });
+    }
+
+    createArticleElement(article) {
+        const div = document.createElement('div');
+        div.className = 'article-card';
+        div.innerHTML = `
+            <div class="article-image">${article.image}</div>
+            <div class="article-content">
+                <div class="article-title">${article.title}</div>
+                <div class="article-description">${article.description}</div>
+                <div class="article-price">${article.price}</div>
+                <div class="article-meta">
+                    <span>👁 ${article.views} visualizzazioni</span>
+                    <span>${article.category}</span>
+                </div>
+            </div>
+        `;
+
+        div.addEventListener('click', () => {
+            this.viewArticle(article.id);
+        });
+
+        return div;
+    }
+
+    viewArticle(articleId) {
+        const article = this.database.articles.find(a => a.id === articleId);
+        if (article) {
+            article.views++;
+            if (this.currentUser && !this.currentUser.viewedArticles.includes(articleId)) {
+                this.currentUser.viewedArticles.push(articleId);
+            }
+            this.saveDatabase();
+            // Here you could show article details or redirect
+            console.log('Viewing article:', article.title);
+        }
+    }
+
+    toggleProfileMenu() {
+        const menu = document.getElementById('profile-menu');
+        menu.classList.toggle('hidden');
+    }
+
+    showSettingsModal() {
+        const modal = document.getElementById('settings-modal');
+        
+        // Pre-fill current user data
+        if (this.currentUser) {
+            document.getElementById('bio').value = this.currentUser.bio || '';
+            document.getElementById('telegram-channel').value = this.currentUser.telegramChannel || '';
+        }
+        
+        modal.classList.remove('hidden');
+        document.getElementById('profile-menu').classList.add('hidden');
+    }
+
+    showSellerModal() {
+        const modal = document.getElementById('seller-modal');
+        
+        // Pre-fill username and channel
+        if (this.currentUser) {
+            document.getElementById('seller-username').value = this.currentUser.username;
+            document.getElementById('feedback-channel').value = this.currentUser.telegramChannel || '';
+        }
+        
+        modal.classList.remove('hidden');
+    }
+
+    showNotificationsModal() {
+        const modal = document.getElementById('notifications-modal');
+        this.loadNotifications();
+        modal.classList.remove('hidden');
+        this.markNotificationsAsRead();
+    }
+
+    loadNotifications() {
+        const container = document.getElementById('notifications-list');
+        const userNotifications = this.database.notifications.filter(
+            n => n.userId === this.currentUser.telegramId
+        );
+
+        if (userNotifications.length === 0) {
+            container.innerHTML = '<div class="no-notifications">Nessuna notifica recente</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        userNotifications.forEach(notification => {
+            const div = document.createElement('div');
+            div.className = 'notification-item';
+            div.innerHTML = `
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-time">${this.formatDate(notification.date)}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    markNotificationsAsRead() {
+        this.database.notifications.forEach(notification => {
+            if (notification.userId === this.currentUser.telegramId) {
+                notification.read = true;
+            }
+        });
+        this.updateNotificationBadge();
+        this.saveDatabase();
+    }
+
+    updateNotificationBadge() {
+        const badge = document.getElementById('notification-badge');
+        const unreadCount = this.database.notifications.filter(
+            n => n.userId === this.currentUser.telegramId && !n.read
+        ).length;
+
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    async handleSettingsUpdate() {
+        const bio = document.getElementById('bio').value;
+        const telegramChannel = document.getElementById('telegram-channel').value;
+        const profilePicFile = document.getElementById('profile-pic').files[0];
+
+        if (this.currentUser) {
+            this.currentUser.bio = bio;
+            this.currentUser.telegramChannel = telegramChannel;
+            
+            if (profilePicFile) {
+                // In a real app, you'd upload the file and store the URL
+                this.currentUser.profilePic = `profile_${Date.now()}.jpg`;
+            }
+
+            await this.saveDatabase();
+            this.closeModal(document.getElementById('settings-modal'));
+            
+            // Add success notification
+            this.addNotification('Impostazioni aggiornate', 'Le tue impostazioni sono state salvate con successo.');
+        }
+    }
+
+    async handleSellerRequest() {
+        const whatSell = document.getElementById('what-sell').value;
+        const feedbackChannel = document.getElementById('feedback-channel').value;
+        const termsAccepted = document.getElementById('terms-accept').checked;
+
+        if (!termsAccepted) {
+            alert('Devi accettare i termini di servizio');
+            return;
+        }
+
+        const request = {
+            id: Date.now(),
+            userId: this.currentUser.telegramId,
+            username: this.currentUser.username,
+            whatSell: whatSell,
+            feedbackChannel: feedbackChannel,
+            date: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        this.database.sellerRequests.push(request);
+        await this.saveDatabase();
+
+        // Send notification to admin (ID: 7839114402)
+        await this.sendAdminNotification(request);
+
+        this.closeModal(document.getElementById('seller-modal'));
+        this.showSellerSuccess();
+    }
+
+    async sendAdminNotification(request) {
+        try {
+            // This would send a message to the Telegram bot
+            const message = `❗NUOVA RICHIESTA:\nUsername: ${request.username}\nCosa vende: ${request.whatSell}\nCanale feedback: ${request.feedbackChannel}`;
+            
+            await fetch('/api/notify-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    adminId: '7839114402',
+                    message: message
+                })
+            });
+        } catch (error) {
+            console.error('Error sending admin notification:', error);
+        }
+    }
+
+    showSellerSuccess() {
+        const modal = document.getElementById('seller-success');
+        modal.classList.remove('hidden');
+        
+        // Auto close after 3 seconds
+        setTimeout(() => {
+            this.closeModal(modal);
+        }, 3000);
+    }
+
+    handleSearch() {
+        const searchTerm = document.getElementById('search-bar').value.toLowerCase().trim();
+        
+        if (!searchTerm) {
+            this.loadArticles();
+            return;
+        }
+
+        const filteredArticles = this.database.articles.filter(article => 
+            article.title.toLowerCase().includes(searchTerm) ||
+            article.description.toLowerCase().includes(searchTerm) ||
+            article.category.toLowerCase().includes(searchTerm)
+        );
+
+        const container = document.getElementById('articles-container');
+        container.innerHTML = '';
+
+        if (filteredArticles.length === 0) {
+            container.innerHTML = '<div class="no-notifications">Nessun articolo trovato</div>';
+            return;
+        }
+
+        filteredArticles.forEach(article => {
+            const articleElement = this.createArticleElement(article);
+            container.appendChild(articleElement);
+        });
+    }
+
+    addNotification(title, message) {
+        const notification = {
+            id: Date.now(),
+            userId: this.currentUser.telegramId,
+            title: title,
+            message: message,
+            date: new Date().toISOString(),
+            read: false
+        };
+
+        this.database.notifications.push(notification);
+        this.updateNotificationBadge();
+        this.saveDatabase();
+    }
+
+    closeModal(modal) {
+        modal.classList.add('hidden');
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('it-IT') + ' ' + date.toLocaleTimeString('it-IT', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     }
 }
 
-// Gestione errori globali
-window.addEventListener('error', function(e) {
-    console.error('Errore applicazione:', e.error);
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new GlobalMerchApp();
 });
-
-// Debug: funzioni per testing
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    window.debugFunctions = {
-        loadDatabase,
-        saveDatabase,
-        userData: () => userData,
-        userId: () => userId
-    };
-}
