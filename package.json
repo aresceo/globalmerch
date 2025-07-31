@@ -1,0 +1,28 @@
+{
+  "name": "globalmerch-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for GlobalMerch miniapp with JSON database",
+  "main": "telegram-bot.js",
+  "scripts": {
+    "start": "node telegram-bot.js",
+    "dev": "nodemon telegram-bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "miniapp",
+    "marketplace",
+    "globalmerch"
+  ],
+  "author": "GlobalMerch",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
