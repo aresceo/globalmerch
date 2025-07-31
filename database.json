@@ -1,0 +1,67 @@
+{
+  "users": [],
+  "articles": [
+    {
+      "id": 1,
+      "title": "iPhone 15 Pro",
+      "description": "Nuovo iPhone 15 Pro 256GB, colore Titanio Naturale",
+      "price": "€1,199",
+      "image": "📱",
+      "views": 150,
+      "category": "Tecnologia",
+      "date": "2025-07-31T09:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "title": "Nike Air Jordan",
+      "description": "Scarpe Nike Air Jordan 1 High, taglia 42",
+      "price": "€180",
+      "image": "👟",
+      "views": 89,
+      "category": "Abbigliamento",
+      "date": "2025-07-31T09:25:00.000Z"
+    },
+    {
+      "id": 3,
+      "title": "MacBook Pro M3",
+      "description": "MacBook Pro 14\" con chip M3, 16GB RAM, 512GB SSD",
+      "price": "€2,299",
+      "image": "💻",
+      "views": 203,
+      "category": "Tecnologia",
+      "date": "2025-07-31T09:20:00.000Z"
+    },
+    {
+      "id": 4,
+      "title": "Rolex Submariner",
+      "description": "Rolex Submariner Date, acciaio inossidabile",
+      "price": "€8,500",
+      "image": "⌚",
+      "views": 45,
+      "category": "Orologi",
+      "date": "2025-07-31T09:15:00.000Z"
+    },
+    {
+      "id": 5,
+      "title": "PlayStation 5",
+      "description": "Console PlayStation 5 nuova, con controller DualSense",
+      "price": "€549",
+      "image": "🎮",
+      "views": 127,
+      "category": "Gaming",
+      "date": "2025-07-31T09:10:00.000Z"
+    },
+    {
+      "id": 6,
+      "title": "Borsa Louis Vuitton",
+      "description": "Borsa Louis Vuitton Neverfull MM, autentica con ricevuta",
+      "price": "€1,350",
+      "image": "👜",
+      "views": 78,
+      "category": "Accessori",
+      "date": "2025-07-31T09:05:00.000Z"
+    }
+  ],
+  "notifications": [],
+  "sellerRequests": []
+}
